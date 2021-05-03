@@ -1,0 +1,8 @@
+numpy
+sklearn
+pandas
+matplotlib
+configparser
+xlsxwriter
+requests
+sgp4
