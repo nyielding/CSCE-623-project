@@ -1,0 +1,45 @@
+version: '3.7'
+services:
+  jupyter_service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: develop
+    environment:
+      DISPLAY:
+      TF_FORCE_GPU_ALLOW_GROWTH: 'true'
+      CHOWN_HOME: 'yes'
+      JUPYTER_ENABLE_LAB: 'yes'
+      #AUTHENTICATE_VIA_JUPYTER: 'mytoken'
+    # Name the image whatever you want below
+    image: jupyterlab:yielding-project
+    # set user to your user id which is usually 1000:1000 to check you user id run `echo $(id -u):$(id -g)`
+    user: 1000:1000
+    volumes:
+      # passing through this file allows opening windows from the container in your host computer
+      - "/tmp/.X11-unix:/tmp/.X11-unix:rw"
+      # pass the passwd file so it can know who user 1000 is
+      - "/etc/passwd:/etc/passwd"
+      # pass through data folder
+      - "/opt/data:/opt/data"
+      # pass through the .keras folder
+      - "/opt/data/.keras:/tmp/.keras"
+      # mount our project
+      # - ".:/opt/project"
+      # Required for Notebooks
+      - "/home:/home"
+    working_dir: /home/antuser/repo/CSCE-623/CSCE-623-project
+    ports:
+      # Jupyter Notebook port
+      - 8888:8888
+      # Jupyter Lab port
+      - 9999:9999
+      # Tensorboard port (recommend running it locally instead)
+#      - 6006:6006
+      # Ray Dashboard
+#      - '127.0.0.1:8001:8001'
+    entrypoint: jupyter lab --ip=0.0.0.0 --port=9999 --allow-root --no-browser
+    # Comment the above and uncomment the below to run something in main.py instead of jupyterlab on 'docker-compose up'
+    # command: 
+#      - python
+#      - src/main.py

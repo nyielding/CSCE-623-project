@@ -6,3 +6,6 @@ configparser
 xlsxwriter
 requests
 sgp4
+
+sklearn
+tensorflow
