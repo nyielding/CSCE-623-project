@@ -3,12 +3,30 @@ from sgp4.api import Satrec
 import pandas as pd
 import numpy as np
 import os
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import MinMaxScaler, LabelEncoder
+from sklearn.linear_model import LogisticRegression, SGDClassifier
+from sklearn.pipeline import Pipeline, make_pipeline
+from sklearn.model_selection import train_test_split
+import seaborn as sns
+
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
+from sklearn.svm import SVC, NuSVC
+
+from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_curve
+from sklearn.metrics import confusion_matrix, recall_score, precision_score, f1_score
+from sklearn.metrics import precision_recall_curve
+
+from sklearn.metrics import plot_roc_curve
+from sklearn.metrics import plot_precision_recall_curve
+
 # %%
+random_state = np.random.RandomState(42)
 testrun = True
 PATHUP = '../'
-TLE_FILES = ['kristall.txt', 'kvant-1.txt', 'kvant-2.txt', 'mir.txt', 'priroda.txt', 
-            'salyut-7.txt', 'spektr.txt', 'zarya.txt']
+# TLE_FILES = ['kristall.txt', 'kvant-1.txt', 'kvant-2.txt', 'mir.txt', 'priroda.txt', 
+#             'salyut-7.txt', 'spektr.txt', 'zarya.txt']
+TLE_FILES = ['spektr.txt', 'zarya.txt']
 # %%
 if testrun:
     for i, txt in enumerate(TLE_FILES):
@@ -47,3 +65,51 @@ df.head()
 df.describe()
 # %%
 df = df.dropna()
+
+# %%
+# df.groupby('sat_name').PetalWidth.plot(kind='kde')
+
+# %%
+# pd.plotting.scatter_matrix(df, figsize=[15,15])
+# %%
+X_train, X_test, y_train, y_test = train_test_split(df.drop(['sat_name', 'error'], axis='columns'),
+                                                    df['sat_name'], 
+                                                    random_state=random_state)
+# %%
+mmscaler = MinMaxScaler()
+le = LabelEncoder()
+X_train_t = mmscaler.fit_transform(X_train)
+y_train_t = le.fit_transform(y_train)
+X_test_t = mmscaler.transform(X_test)
+y_test_t = le.transform(y_test)
+# %%
+model = LogisticRegression()
+model.fit(X=X_train_t, y=y_train_t)
+score = model.score(X_test_t, y_test_t)
+print('LR score: ', score)
+# %%
+model2 = LinearDiscriminantAnalysis()
+model2.fit(X=X_train_t, y=y_train_t)
+score2 = model2.score(X_test_t, y_test_t)
+print('LDA score: ', score2)
+# %%
+model3 = QuadraticDiscriminantAnalysis()
+model3.fit(X=X_train_t, y=y_train_t)
+score3 = model3.score(X_test_t, y_test_t)
+print('QDA score: ', score3)
+# %%
+model4 = SVC()
+model4.fit(X=X_train_t, y=y_train_t)
+score4 = model4.score(X_test_t, y_test_t)
+print('SVC score: ', score4)
+# %%
+model5 = NuSVC()
+model5.fit(X=X_train_t, y=y_train_t)
+score5 = model5.score(X_test_t, y_test_t)
+print('NuSVC score: ', score5)
+# %%
+model6 = SGDClassifier()
+model6.fit(X=X_train_t, y=y_train_t)
+score6 = model6.score(X_test_t, y_test_t)
+print('SGCDclass score: ', score6)
+# %%
