@@ -1,4 +1,6 @@
 # %%
+import matplotlib.pyplot as plt
+from matplotlib.pyplot import axis
 from sgp4.api import Satrec
 import pandas as pd
 import numpy as np
@@ -22,7 +24,7 @@ from sklearn.metrics import plot_precision_recall_curve
 
 # %% GLOBALS
 random_state = np.random.RandomState(42)
-use_jupyter = True
+use_jupyter = False
 PATHUP = '../'
 # TLE_FILES = ['kristall.txt', 'kvant-1.txt', 'kvant-2.txt', 'mir.txt', 'priroda.txt',
 #             'salyut-7.txt', 'spektr.txt', 'zarya.txt']
@@ -146,3 +148,15 @@ print('\nScores of vector magnitude: ')
 scores_mag = quick_model(models, X_mag_train_t,
                          X_mag_test_t, y_mag_train_t, y_mag_test_t)
 # %%
+train.reset_index(inplace=True)
+labels = train['sat_name']
+train_forplot = train.drop(['error', 'sat_name', 'index'], axis='columns')
+plot_columns = list(train_forplot.columns)
+print(plot_columns)
+train_forplot_t = mm_scaler.transform(train_forplot)
+train_forplot = pd.DataFrame(train_forplot_t, columns=plot_columns)
+train_forplot['sat_name'] = labels
+
+sns.set(font_scale=2)
+sns.pairplot(train_forplot, hue='sat_name')
+plt.savefig('./plots/scaled_pairs.png')
