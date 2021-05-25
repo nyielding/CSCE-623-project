@@ -1,3 +1,7 @@
 /.venv
 /.vscode
 plots/scaled_pairs.png
+/models
+/plots
+*met3*
+/archive

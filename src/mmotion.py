@@ -36,7 +36,7 @@ random_state = np.random.RandomState(42)
 # TLE_FILES = ['kristall.txt', 'kvant-1.txt', 'kvant-2.txt', 'mir.txt', 'priroda.txt',
 #             'salyut-7.txt', 'spektr.txt', 'zarya.txt']
 TLE_FILES = ['met3-01.txt', 'met3-02.txt', 'met3-03.txt', 'met3-04.txt', 'met3-05.txt', 'met3-06.txt']
-train_models = False
+train_models = True
 
 # %%
 def quick_model(models_dict, Xtr, Xte, ytr, yte):
@@ -86,11 +86,11 @@ def plot_confusion_matrix(cm, classes,
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
     if savefig:
-        figname = os.path.join('./plots/', title + '.png')
+        figname = os.path.join('./plots/', 'coe' + title + '.png')
         plt.savefig(figname)
 
 
-def run_pairplot(data, scalar, le):
+def run_pairplot(data, scalar, le, title):
     data.reset_index(inplace=True)
     labels = data['sat_name']
     train_forplot = data.drop(['error', 'sat_name', 'index'], axis='columns')
@@ -102,7 +102,7 @@ def run_pairplot(data, scalar, le):
 
     sns.set(font_scale=2)
     sns.pairplot(train_forplot, hue='sat_name')
-    plt.savefig('./plots/scaled_pairs_multi.png')
+    plt.savefig('./plots/' + title + '.png')
 
 
 def myGridSearch(estimator=None, tuned_parameters=None,X_train=None, X_test=None, y_train=None, y_test=None):
@@ -138,7 +138,7 @@ def myGridSearch(estimator=None, tuned_parameters=None,X_train=None, X_test=None
 
 
 def saveModel(model=None, name='model'):
-    filename = os.path.join('./models/', name + '.joblib')
+    filename = os.path.join('./models/','coe' + name + '.joblib')
     dump(model, filename=filename)
 
 
@@ -150,31 +150,37 @@ def loadModel(name=None):
 
 # %%
 # Read the first 1000 TLEs from files
-columns = ['rx', 'ry', 'rz', 'vx', 'vy', 'vz', 'error', 'sat_name']
+columns = ['mean_motion','inclo', 'RAAN', 'ecc', 'argpo', 'm_anomaly', 'sat_name']
 dflist = []
 for sat_name in TLE_FILES:
     TLEs = open(sat_name, 'r')
-    sats = np.zeros([1000, 7])
+    sats = np.zeros([1000, 6])
     for i in range(1000):
         line1 = TLEs.readline()
         line2 = TLEs.readline()
         satellite = Satrec.twoline2rv(line1, line2)
-        e, r, v = satellite.sgp4(satellite.jdsatepoch, satellite.jdsatepochF)
-        sats[i, 0:3] = r
-        sats[i, 3:6] = v
-        sats[i, 6] = e
+        # e, r, v = satellite.sgp4(satellite.jdsatepoch, satellite.jdsatepochF)
+        sats[i, 0] = satellite.no_kozai
+        sats[i, 1] = satellite.inclo
+        sats[i, 2] = satellite.nodeo
+        sats[i, 3] = satellite.ecco
+        sats[i, 4] = satellite.argpo
+        sats[i, 5] = satellite.mo
+        # sats[i, 3:6] = v
+        # sats[i, 6] = e
     name_column = sat_name[:-4]
     df_temp = pd.DataFrame(data=sats, columns=columns[:-1])
     df_temp['sat_name'] = name_column
     dflist.append(df_temp)
 
 df = pd.concat(dflist)
-df['r_mag'] = np.sqrt(df.rx**2 + df.ry**2 + df.rz**2)
-df['v_mag'] = np.sqrt(df.vx**2 + df.vy**2 + df.vz**2)
+# df['r_mag'] = np.sqrt(df.rx**2 + df.ry**2 + df.rz**2)
+# df['v_mag'] = np.sqrt(df.vx**2 + df.vy**2 + df.vz**2)
 TLEs.close()
 
 # %%
 df = df.dropna()
+df = df[(df[['mean_motion']] != 0).any(axis=1)]
 # df.head()
 print(df.describe())
 
@@ -190,7 +196,7 @@ test = pd.DataFrame(test, columns=columns)
 train = pd.DataFrame(train, columns=columns)
 
 # %% Split train into train/val
-X_train, X_val, y_train, y_val = train_test_split(train.drop(['sat_name', 'error'], axis='columns'),
+X_train, X_val, y_train, y_val = train_test_split(train.drop(['sat_name'], axis='columns'),
                                                     train['sat_name'],
                                                     random_state=random_state,
                                                     test_size=0.2,
@@ -200,30 +206,29 @@ X_train, X_val, y_train, y_val = train_test_split(train.drop(['sat_name', 'error
 scaler = StandardScaler()
 le = LabelEncoder()
 X_train_t = scaler.fit_transform(X_train)
+# X_train_t = X_train
 y_train_t = le.fit_transform(y_train)
 X_test_t = scaler.transform(X_val)
+# X_test_t = X_val
 y_test_t = le.transform(y_val)
 
-# %% Get a pairplot of the scaled training data
-# run_pairplot(train, scaler, le)
+# %%
+models = {
+    'LogisticRegression': LogisticRegression(),
+    'LDA': LinearDiscriminantAnalysis(),
+    'QDA': QuadraticDiscriminantAnalysis(),
+    'SVC': SVC(),
+    'NuSVC': NuSVC(),
+    'LinearSVC': LinearSVC(),
+    'SGCDClass': SGDClassifier(),
+    'DecisionTree': DecisionTreeClassifier(max_depth=10),
+    'RandomForest': RandomForestClassifier(max_depth=10),
+    # 'BoostedTree': GradientBoostingClassifier()
+}
 
-# # %%
-# models = {
-#     'LogisticRegression': LogisticRegression(),
-#     'LDA': LinearDiscriminantAnalysis(),
-#     'QDA': QuadraticDiscriminantAnalysis(),
-#     'SVC': SVC(),
-#     'NuSVC': NuSVC(),
-#     'LinearSVC': LinearSVC(),
-#     'SGCDClass': SGDClassifier(),
-#     'DecisionTree': DecisionTreeClassifier(max_depth=10),
-#     'RandomForest': RandomForestClassifier(max_depth=10),
-#     'BoostedTree': GradientBoostingClassifier()
-# }
-
-# # %% Quick score test of basic models
-# print('\nScores only scaling: ')
-# scores = quick_model(models, X_train_t, X_test_t, y_train_t, y_test_t)
+# %% Quick score test of basic models
+print('\nScores only scaling: ')
+scores = quick_model(models, X_train_t, X_test_t, y_train_t, y_test_t)
 
 # %% Do a grid search
 if train_models:
@@ -294,31 +299,31 @@ if train_models:
 class_names = le.classes_
 
 # model = tree_grid.best_estimator_
-model = loadModel('DecisionTreeModel')
+model = loadModel('coeDecisionTreeModel')
 y_pred = model.predict(X_test_t)
 cm = confusion_matrix(y_true=y_test_t, y_pred=y_pred)
-title = 'DecisionTreeCM'
+title = 'coeDecisionTreeCM'
 plot_confusion_matrix(cm=cm, classes=class_names, title=title, normalize=True, savefig=True)
 
 # model = rf_grid.best_estimator_
-model = loadModel('RandomForestModel')
+model = loadModel('coeRandomForestModel')
 y_pred = model.predict(X_test_t)
 cm = confusion_matrix(y_true=y_test_t, y_pred=y_pred)
-title = 'RandomForestCM'
+title = 'coeRandomForestCM'
 plot_confusion_matrix(cm=cm, classes=class_names, title=title, normalize=True, savefig=True)
 
 # model = boost_grid.best_estimator_
-model = loadModel('GradientBoostedModel')
+model = loadModel('coeGradientBoostedModel')
 y_pred = model.predict(X_test_t)
 cm = confusion_matrix(y_true=y_test_t, y_pred=y_pred)
-title = 'BoostedTreeCM'
+title = 'coeBoostedTreeCM'
 plot_confusion_matrix(cm=cm, classes=class_names, title=title, normalize=True, savefig=True)
 
 # model = svc_grid.best_estimator_
-model = loadModel('SupportVectorModel')
+model = loadModel('coeSupportVectorModel')
 y_pred = model.predict(X_test_t)
 cm = confusion_matrix(y_true=y_test_t, y_pred=y_pred)
-title = 'SupportVectorMachineCM'
+title = 'coeSupportVectorMachineCM'
 plot_confusion_matrix(cm=cm, classes=class_names, title=title, normalize=True, savefig=True)
 
 # model = loadModel('EnsembleMethods')
