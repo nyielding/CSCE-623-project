@@ -8,7 +8,7 @@ import numpy as np
 import os
 import time
 from joblib import dump, load
-from sklearn.preprocessing import MinMaxScaler, LabelEncoder, StandardScaler
+from sklearn.preprocessing import MinMaxScaler, LabelEncoder, StandardScaler, QuantileTransformer
 from sklearn.linear_model import LogisticRegression, SGDClassifier
 from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.model_selection import train_test_split
@@ -203,7 +203,8 @@ X_train, X_val, y_train, y_val = train_test_split(train.drop(['sat_name'], axis=
                                                     stratify=train[['sat_name']])
 
 # %%
-scaler = StandardScaler()
+# scaler = StandardScaler()
+scaler = QuantileTransformer(n_quantiles=1000, output_distribution='uniform', random_state=random_state)
 le = LabelEncoder()
 X_train_t = scaler.fit_transform(X_train)
 # X_train_t = X_train
@@ -232,6 +233,13 @@ scores = quick_model(models, X_train_t, X_test_t, y_train_t, y_test_t)
 
 # %% Do a grid search
 if train_models:
+    log_params = {'C': [0.1, 1, 100, 1000, 10000, 100000, 1000000],
+        # 'solver': ['newton-cg', 'lbfgs', 'liblinear', 'sag', 'saga'],
+        'max_iter': [100, 10000],
+        'n_jobs': [-1],
+        'penalty': ['l1', 'l2', 'elasticnet']}
+    lda_params = {'solver': ['svd', 'lsqr', 'eigen'],
+        }
     tree_params = {'max_depth': [15, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 30],
         'criterion': ['gini', 'entropy'],
         # 'min_samples_split': [2, 10, 50, 100]
@@ -258,12 +266,26 @@ if train_models:
         'weights': [[1, 1, 1], [1, 1, 2], [1, 1, 1.9]]
         }
 
+    estimator0 = LogisticRegression(random_state=random_state)
+    estimator01 = LinearDiscriminantAnalysis()
     estimator1 = DecisionTreeClassifier(random_state=random_state)
     estimator2 = RandomForestClassifier(random_state=random_state)
     estimator3 = GradientBoostingClassifier(random_state=random_state)
     estimator4 = SVC(random_state=random_state)
     ensemble = VotingClassifier(estimators=[('RF', estimator2), ('GB', estimator3), ('SVC', estimator4)],
         n_jobs=-1)
+
+    # print('\nLogistic Regression: \n')
+    # log_grid = myGridSearch(estimator=estimator0, 
+    #                         tuned_parameters=log_params, 
+    #                         X_train=X_train_t, X_test=X_test_t, y_train=y_train_t, y_test=y_test_t)
+    # saveModel(model=log_grid.best_estimator_, name='LogisticRegModel')
+
+    # print('\nLDA: \n')
+    # lda_grid = myGridSearch(estimator=estimator01, 
+    #                         tuned_parameters=lda_params, 
+    #                         X_train=X_train_t, X_test=X_test_t, y_train=y_train_t, y_test=y_test_t)
+    # saveModel(model=lda_grid.best_estimator_, name='LDAModel')
 
     print('\nDecision Tree: \n')
     tree_grid = myGridSearch(estimator=estimator1, 
@@ -297,6 +319,18 @@ if train_models:
 
 # %% Plot confusion matrices
 class_names = le.classes_
+
+# model = loadModel('coeLDAModel')
+# y_pred = model.predict(X_test_t)
+# cm = confusion_matrix(y_true=y_test_t, y_pred=y_pred)
+# title = 'coeLDA_CM'
+# plot_confusion_matrix(cm=cm, classes=class_names, title=title, normalize=True, savefig=True)
+
+# model = loadModel('coeLogisticRegModel')
+# y_pred = model.predict(X_test_t)
+# cm = confusion_matrix(y_true=y_test_t, y_pred=y_pred)
+# title = 'coeLogisticRegCM'
+# plot_confusion_matrix(cm=cm, classes=class_names, title=title, normalize=True, savefig=True)
 
 # model = tree_grid.best_estimator_
 model = loadModel('coeDecisionTreeModel')
