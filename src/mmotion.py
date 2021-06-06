@@ -87,7 +87,7 @@ def plot_confusion_matrix(cm, classes,
     plt.xlabel('Predicted label')
     if savefig:
         figname = os.path.join('./plots/', 'coe' + title + '.png')
-        plt.savefig(figname)
+        plt.savefig(figname, bbox_inches="tight")
 
 
 def run_pairplot(data, scalar, le, title):
@@ -293,23 +293,23 @@ if train_models:
                             X_train=X_train_t, X_test=X_test_t, y_train=y_train_t, y_test=y_test_t)
     saveModel(model=tree_grid.best_estimator_, name='DecisionTreeModel')
     
-    print('\nRandom Forest: \n')
-    rf_grid = myGridSearch(estimator=estimator2, 
-                            tuned_parameters=rf_params, 
-                            X_train=X_train_t, X_test=X_test_t, y_train=y_train_t, y_test=y_test_t)
-    saveModel(model=rf_grid.best_estimator_, name='RandomForestModel')   
+    # print('\nRandom Forest: \n')
+    # rf_grid = myGridSearch(estimator=estimator2, 
+    #                         tuned_parameters=rf_params, 
+    #                         X_train=X_train_t, X_test=X_test_t, y_train=y_train_t, y_test=y_test_t)
+    # saveModel(model=rf_grid.best_estimator_, name='RandomForestModel')   
     
-    print('\nGradient Boost Tree: \n')
-    boost_grid = myGridSearch(estimator=estimator3, 
-                            tuned_parameters=boost_params, 
-                            X_train=X_train_t, X_test=X_test_t, y_train=y_train_t, y_test=y_test_t)
-    saveModel(model=boost_grid.best_estimator_, name='GradientBoostedModel')   
+    # print('\nGradient Boost Tree: \n')
+    # boost_grid = myGridSearch(estimator=estimator3, 
+    #                         tuned_parameters=boost_params, 
+    #                         X_train=X_train_t, X_test=X_test_t, y_train=y_train_t, y_test=y_test_t)
+    # saveModel(model=boost_grid.best_estimator_, name='GradientBoostedModel')   
     
-    print('\nState Vector Machine: \n')
-    svc_grid = myGridSearch(estimator=estimator4, 
-                            tuned_parameters=svc_params, 
-                            X_train=X_train_t, X_test=X_test_t, y_train=y_train_t, y_test=y_test_t)
-    saveModel(model=svc_grid.best_estimator_, name='SupportVectorModel')
+    # print('\nState Vector Machine: \n')
+    # svc_grid = myGridSearch(estimator=estimator4, 
+    #                         tuned_parameters=svc_params, 
+    #                         X_train=X_train_t, X_test=X_test_t, y_train=y_train_t, y_test=y_test_t)
+    # saveModel(model=svc_grid.best_estimator_, name='SupportVectorModel')
 
     # print('\nEnsemble Method: \n')
     # ens_grid = myGridSearch(estimator=ensemble, 
@@ -339,26 +339,26 @@ cm = confusion_matrix(y_true=y_test_t, y_pred=y_pred)
 title = 'coeDecisionTreeCM'
 plot_confusion_matrix(cm=cm, classes=class_names, title=title, normalize=True, savefig=True)
 
-# model = rf_grid.best_estimator_
-model = loadModel('coeRandomForestModel')
-y_pred = model.predict(X_test_t)
-cm = confusion_matrix(y_true=y_test_t, y_pred=y_pred)
-title = 'coeRandomForestCM'
-plot_confusion_matrix(cm=cm, classes=class_names, title=title, normalize=True, savefig=True)
+# # model = rf_grid.best_estimator_
+# model = loadModel('coeRandomForestModel')
+# y_pred = model.predict(X_test_t)
+# cm = confusion_matrix(y_true=y_test_t, y_pred=y_pred)
+# title = 'coeRandomForestCM'
+# plot_confusion_matrix(cm=cm, classes=class_names, title=title, normalize=True, savefig=True)
 
-# model = boost_grid.best_estimator_
-model = loadModel('coeGradientBoostedModel')
-y_pred = model.predict(X_test_t)
-cm = confusion_matrix(y_true=y_test_t, y_pred=y_pred)
-title = 'coeBoostedTreeCM'
-plot_confusion_matrix(cm=cm, classes=class_names, title=title, normalize=True, savefig=True)
+# # model = boost_grid.best_estimator_
+# model = loadModel('coeGradientBoostedModel')
+# y_pred = model.predict(X_test_t)
+# cm = confusion_matrix(y_true=y_test_t, y_pred=y_pred)
+# title = 'coeBoostedTreeCM'
+# plot_confusion_matrix(cm=cm, classes=class_names, title=title, normalize=True, savefig=True)
 
-# model = svc_grid.best_estimator_
-model = loadModel('coeSupportVectorModel')
-y_pred = model.predict(X_test_t)
-cm = confusion_matrix(y_true=y_test_t, y_pred=y_pred)
-title = 'coeSupportVectorMachineCM'
-plot_confusion_matrix(cm=cm, classes=class_names, title=title, normalize=True, savefig=True)
+# # model = svc_grid.best_estimator_
+# model = loadModel('coeSupportVectorModel')
+# y_pred = model.predict(X_test_t)
+# cm = confusion_matrix(y_true=y_test_t, y_pred=y_pred)
+# title = 'coeSupportVectorMachineCM'
+# plot_confusion_matrix(cm=cm, classes=class_names, title=title, normalize=True, savefig=True)
 
 # model = loadModel('EnsembleMethods')
 # y_pred = model.predict(X_test_t)

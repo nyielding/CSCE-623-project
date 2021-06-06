@@ -3,6 +3,7 @@ import itertools
 import pickle
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import axes, axis
+from scipy.sparse import data
 from sgp4.api import Satrec
 import pandas as pd
 import numpy as np
@@ -21,7 +22,7 @@ from sklearn.svm import SVC, NuSVC, LinearSVC
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, VotingClassifier
 
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_auc_score, classification_report
 from sklearn.metrics import roc_curve
 from sklearn.metrics import confusion_matrix, recall_score, precision_score, f1_score
 from sklearn.metrics import precision_recall_curve
@@ -30,6 +31,7 @@ from sklearn.metrics import plot_roc_curve
 from sklearn.metrics import plot_precision_recall_curve
 
 from sklearn.model_selection import GridSearchCV
+from sklearn.manifold import TSNE
 # from ray.tune.sklearn import TuneGridSearchCV
 
 # %% GLOBALS
@@ -90,7 +92,7 @@ def plot_confusion_matrix(cm, classes,
     plt.xlabel('Predicted label')
     if savefig:
         figname = os.path.join('./plots/', title + '.png')
-        plt.savefig(figname)
+        plt.savefig(figname, bbox_inches="tight")
 
 
 def run_pairplot(data, scalar, le):
@@ -105,7 +107,7 @@ def run_pairplot(data, scalar, le):
 
     sns.set(font_scale=2)
     sns.pairplot(train_forplot, hue='sat_name')
-    plt.savefig('./plots/scaled_pairs_multi.png')
+    plt.savefig('./plots/scaled_pairs_multi.png', bbox_inches="tight")
 
 
 def run_PCA(X_train):
@@ -124,7 +126,7 @@ def run_PCA(X_train):
     plt.xlabel('N Components')
     plt.ylabel('Cumulative Explained Variance')
     plt.grid()
-    plt.savefig('./plots/pca.png')
+    plt.savefig('./plots/pca.png', bbox_inches="tight")
     return pca.components_, pca.explained_variance_, pca.explained_variance_ratio_
 
 def myGridSearch(estimator=None, tuned_parameters=None,X_train=None, X_test=None, y_train=None, y_test=None, cv=None, verbose=0):
@@ -196,7 +198,7 @@ def plot_grid_search(cv_results, grid_param_1, grid_param_2, name_param_1, name_
         ax.set_xscale('log')
     else:
         ax.set_xscale('linear')
-    plt.savefig('./plots/' + filename + '.png')
+    plt.savefig('./plots/' + filename + '.png', bbox_inches="tight")
 
 
 def saveModel(model=None, name='model'):
@@ -323,8 +325,8 @@ svc_params = {'C': svc_C,
     'kernel': ['sigmoid', 'rbf'],
     # 'gamma': ['scale', 'auto'] # not significant
     }
-svc_p_C = [1, 10, 100, 1000]
-svc_degrees = [3, 4, 5]
+svc_p_C = [1, 10, 100]
+svc_degrees = [3, 4, 5, 6, 7, 8, 9, 10]
 svc_poly_params = {'C': svc_p_C,
     'kernel': ['poly'],
     'degree': svc_degrees,
@@ -384,21 +386,21 @@ if train_models:
     # saveResults(svc_grid.cv_results_, 'svc_results')
     # saveModel(model=svc_grid.best_estimator_, name='SupportVectorModel')
 
-    # svc_poly_grid = myGridSearch(estimator=estimator4pf, 
-    #                         tuned_parameters=svc_poly_params, 
-    #                         X_train=X_train_t, X_test=X_test_t, y_train=y_train_t, y_test=y_test_t,
-    #                         verbose=4,
-    #                         cv=5)
-    # saveResults(svc_poly_grid.cv_results_, 'svc_poly_results')
-    # saveModel(model=svc_poly_grid.best_estimator_, name='SupportVectorModelpoly')
-
-    svc_gamma_grid = myGridSearch(estimator=estimator4pf, 
-                            tuned_parameters=svc_gamma_params, 
+    svc_poly_grid = myGridSearch(estimator=estimator4pf, 
+                            tuned_parameters=svc_poly_params, 
                             X_train=X_train_t, X_test=X_test_t, y_train=y_train_t, y_test=y_test_t,
                             verbose=4,
                             cv=5)
-    saveResults(svc_gamma_grid.cv_results_, 'svc_gamma_results')
-    saveModel(model=svc_gamma_grid.best_estimator_, name='SupportVectorModelgamma')
+    saveResults(svc_poly_grid.cv_results_, 'svc_poly_results')
+    saveModel(model=svc_poly_grid.best_estimator_, name='SupportVectorModelpoly')
+
+    # svc_gamma_grid = myGridSearch(estimator=estimator4pf, 
+    #                         tuned_parameters=svc_gamma_params, 
+    #                         X_train=X_train_t, X_test=X_test_t, y_train=y_train_t, y_test=y_test_t,
+    #                         verbose=4,
+    #                         cv=5)
+    # saveResults(svc_gamma_grid.cv_results_, 'svc_gamma_results')
+    # saveModel(model=svc_gamma_grid.best_estimator_, name='SupportVectorModelgamma')
 
     # print('\nEnsemble Method: \n')
     # ens_grid = myGridSearch(estimator=ensemble, 
@@ -458,7 +460,7 @@ plot_grid_search(cv_results_, svc_C, svc_kernels, 'C Value', 'Kernel', filename=
 
 # C based poly grid
 cv_results_ = loadResults('svc_poly_results')
-plot_grid_search(cv_results_, svc_p_C, svc_degrees, 'C Value', 'Degree', filename='svc_poly_grid_plot', title='Polynomial Grid Search', logscale=True)
+plot_grid_search(cv_results_, svc_degrees, svc_p_C, 'Degree', 'C Value', filename='svc_poly2_grid_plot', title='Polynomial Grid Search', logscale=False)
 
 # Gamma based sigmoid/rbf grid
 svc_kernels = ['rbf']
@@ -475,11 +477,11 @@ plot_grid_search(cv_results_, svc_gamma, svc_kernels, 'Gamma', 'Kernel', filenam
 # title = 'EnsembleMethodsCM'
 # plot_confusion_matrix(cm=cm, classes=class_names, title=title, normalize=True, savefig=True)
 # %% 
+X_test = test.drop(['sat_name', 'error'], axis='columns')
+y_test = test['sat_name']
+X_test = scaler.transform(X_test)
+y_test = le.transform(y_test)
 if run_test_outputs:
-    X_test = test.drop(['sat_name', 'error'], axis='columns')
-    y_test = test['sat_name']
-    X_test = scaler.transform(X_test)
-    y_test = le.transform(y_test)
     best_model = SVC(C=10000000, gamma=0.27, random_state=random_state, probability=True)
     best_model.fit(X_train_t, y_train_t)
     y_pred = best_model.predict(X_test)
@@ -487,8 +489,13 @@ if run_test_outputs:
     title = 'SupportVectorTest'
     plot_confusion_matrix(cm=cm, classes=class_names, title=title, normalize=True, savefig=True)
     plot_confusion_matrix(cm=cm, classes=class_names, title='nn'+title, normalize=False, savefig=True)
+    saveModel(best_model, 'best_model')
 
 # %% Error analysis nightmare
+best_model = loadModel('best_model')
+y_pred = best_model.predict(X_test)
+cr = classification_report(y_true=y_test, y_pred=y_pred, digits=4)
+print(cr)
 run_eplots = True
 if run_eplots:
     # Run error analysis
@@ -518,7 +525,7 @@ if run_eplots:
             dfe.rz[dfe.errors==s],
             label=s)
     ax.legend()
-    plt.savefig('./plots/pos_errors.png')
+    plt.savefig('./plots/pos_errors.png', bbox_inches="tight")
 
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
@@ -529,54 +536,95 @@ if run_eplots:
             dfe.vz[dfe.errors==s],
             label=s)
     ax.legend()
-    plt.savefig('./plots/vel_errors.png')
-
+    plt.savefig('./plots/vel_errors.png', bbox_inches="tight")
 
     fig = plt.figure()
     sns.scatterplot(data=dfe, x='r_mag', y='v_mag', hue='errors', markers=['o', 's', 'v', 'D'])
-    plt.savefig('./plots/mag_errors.png')
+    plt.savefig('./plots/mag_errors.png', bbox_inches="tight")
     
-
     plt.figure()
     sns.histplot(dfe, x='r_mag', y='v_mag', hue='errors')
-    plt.savefig('./plots/error_hist_mag.png')
-    # # sns.histplot(df_errors[['ry', 'errors']], hue='errors', ax=axes[1])
-    # sns.histplot(df_errors, x='ry', hue='errors', ax=axes[1])
-    # sns.set(font_scale=1)
+    plt.savefig('./plots/error_hist_mag.png', bbox_inches="tight")
 
-    # sns.histplot(df_errors, x='rz', hue='errors', ax=axes[2])
-    # # sns.set(font_scale=2)
-    # plt.savefig('./plots/error_hist_r.png')
+# %%
+run_proba = True
+if run_proba:
+    probs = best_model.predict_proba(dfe.drop(columns=['errors']))
+    probs = probs[:, 0:2]
+    prob_diff = probs[:,0] - probs[:,1]
+    dfp = pd.DataFrame()
+    dfp['probability'] = prob_diff
+    dfp['error_type'] = dfe.errors
+    sns.catplot(x='error_type', y='probability', data=dfp)
+    plt.xticks(rotation=45)
+    plt.savefig('./plots/error_probs.png', bbox_inches="tight")
+# %%
+run_tsne = True
+if run_tsne:
+    cl_1, cl_2 = 0, 1
+    x_11 = X_test[(y_test == cl_1) & (y_pred == cl_1)]
+    x_12 = X_test[(y_test == cl_1) & (y_pred == cl_2)]
+    x_21 = X_test[(y_test == cl_2) & (y_pred == cl_1)]
+    x_22 = X_test[(y_test == cl_2) & (y_pred == cl_2)]
+    # x_11 = x_11[::20]
+    # x_22 = x_22[::20]
+    class_11 = ['01 correct'] * len(x_11)
+    class_22 = ['02 correct'] * len(x_22)
+    class_12 = ['01 pred as 02'] * len(x_12)
+    class_21 = ['02 pred as 01'] * len(x_21)
+    x_array = np.vstack((x_11, x_12, x_21, x_22))
+    class_list = class_11 + class_12 + class_21 + class_22
+    columns = ['rx', 'ry', 'rz', 'vx', 'vy', 'vz', 'r_mag', 'v_mag']
+    dfe = pd.DataFrame(x_array, columns=columns)
+    dfe['errors'] = class_list
+    time_start = time.time()
+    tsne = TSNE(n_components=2, verbose=4, random_state=random_state, n_jobs=-1, perplexity=50)
+    tsne_results = tsne.fit_transform(dfe[columns])
+    df_tsne = pd.DataFrame(tsne_results, columns=['tsne_1', 'tsne_2'])
+    df_tsne['errors'] = class_list
+    plt.figure()
+    sns.scatterplot(
+        x='tsne_1', y='tsne_2',
+        hue='errors',
+        data=df_tsne,
+        legend='full',
+        alpha=0.6,
+    )
+    plt.savefig('./plots/tsne2.png', bbox_inches='tight')
 
-    # fig, axes = plt.subplots(1, 3)
-    # fig.suptitle('Velocity Vector Errors')
-    # sns.histplot(df_errors, x='vx', hue='errors', ax=axes[0])
-    # # sns.set(font_scale=2)
+# %%
+def dist_report(e, cor, inc, name=None):
+    from sklearn.metrics.pairwise import euclidean_distances
+    distcorr = euclidean_distances(X=e, Y=cor)
+    # print(dist121)
+    # print(dist121.shape)
+    mincor = np.min(distcorr, axis=1)
+    # print(min121.shape)
+    print('Distances between errors and correct: ')
+    print(mincor)
 
-    # sns.histplot(df_errors, x='vy', hue='errors', ax=axes[1])
-    # # sns.set(font_scale=2)
+    distin = euclidean_distances(X=e, Y=inc)
+    # print(dist121)
+    # print(dist122.shape)
+    minin = np.min(distin, axis=1)
+    # print(min122.shape)
+    print('Distances between errors and incorrect: ')
+    print(minin)
+    print('Shorter distance to incorrect class?: ')
+    b12 = minin<mincor
+    print(b12)
 
-    # sns.histplot(df_errors, x='vz', hue='errors', ax=axes[2])
-    # # sns.set(font_scale=2)
-    # plt.savefig('./plots/error_hist_v.png')
+    # df_dist = pd.DataFrame(data=np.concatenate([minin, mincor]), columns=['Distances'])
+    # distl = ['Incorrect Class']*len(minin) + ['Correct Class']*len(mincor)
+    # df_dist['class'] = distl
+    # plt.figure()
+    # sns.histplot(data=np.concatenate([minin, mincor]).reshape(-1,1), hue=distl, alpha=0.3)
 
-    # fig, axes = plt.subplots(1, 2)
-    # fig.suptitle('Magnitude Errors')
-    # sns.histplot(df_errors, x='r_mag', hue='errors', ax=axes[0])
-    # # sns.set(font_scale=2)
 
-    # sns.histplot(df_errors, x='v_mag', hue='errors', ax=axes[1])
-    # # sns.set(font_scale=2)
-    # plt.savefig('./plots/error_hist_mag.png')
+print('Dist report for Sat 1 missed as Sat 2')
+dist_report(x_12, x_11, x_22)
 
-    # sns.pairplot(df_errors.drop(['vx', 'vy', 'vz', 'r_mag', 'v_mag'], axis='columns'), hue='errors', markers=['o', 's', 'v', 'D'])
-    # plt.savefig('./plots/error_pairs_r.png')
+print('Dist report for Sat 2 missed as Sat 1')
+dist_report(x_21, x_22, x_11)
 
-    # sns.set(font_scale=2)
-    # sns.pairplot(df_errors.drop(['rx', 'ry', 'rz', 'r_mag', 'v_mag'], axis='columns'), hue='errors', markers=['o', 's', 'v', 'D'])
-    # plt.savefig('./plots/error_pairs_v.png')
-
-    # sns.set(font_scale=2)
-    # sns.pairplot(df_errors[['r_mag', 'v_mag', 'errors']], hue='errors', markers=['o', 's', 'v', 'D'])
-    # plt.savefig('./plots/error_pairs_mag.png')
-
+# %%
